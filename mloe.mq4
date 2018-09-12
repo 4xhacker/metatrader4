@@ -10,7 +10,7 @@
 
 #define MAGICMA  1
 
-datetime LastActiontime;
+
 
 //--- input parameters
 input int      TAKE_PROFIT=40;
@@ -18,14 +18,14 @@ input int      STOP_LOSS=40;
 input int      STOCHASTIC_SLOW=21;
 input int      STOCHASTIC_FAST=5;
 input int      MAX_OPEN_TRADE=1;
+input int      TREND_MOVING_AVERAGE=200;
 input double   OVERBOUGHT_LEVEL=80;
-input double   UNDERSOLD_LEVEL=20;
+input double   OVERSOLD_LEVEL=20;
 input double   LOT_SIZE=0.01;
 
 // Global variables
-int LongTicket;
-int ShortTicket;
 double RealPoint;
+datetime LastCandleOpenTime;
 //+------------------------------------------------------------------+
 //| Expert initialization function                                   |
 //+------------------------------------------------------------------+
@@ -51,22 +51,13 @@ void OnTick()
 
    if(IsNewBar())
      {
-
-      double stochastictFast = iStochastic(Symbol(),0,STOCHASTIC_SLOW,3,1,MODE_SMA,0,MODE_MAIN,1);
-      double stochastictSlow =iStochastic(Symbol(),0,STOCHASTIC_FAST,3,1,MODE_SMA,0,MODE_MAIN,1);
+      double stochastictSlow = iStochastic(Symbol(),0,STOCHASTIC_SLOW,3,1,MODE_SMA,0,MODE_MAIN,1);
+      double stochastictFast =iStochastic(Symbol(),0,STOCHASTIC_FAST,3,1,MODE_SMA,0,MODE_MAIN,1);
       double iMA1 = iMA(Symbol(),0,STOCHASTIC_FAST,0,MODE_SMMA,PRICE_MEDIAN,1);
-      double iMA2 = iMA(Symbol(),0,STOCHASTIC_FAST,0,MODE_SMMA,PRICE_MEDIAN,10);
+      double iMA2 = iMA(Symbol(),0,STOCHASTIC_FAST,0,MODE_SMMA,PRICE_MEDIAN,2);
       double slope= iMA1-iMA2;
 
-      if((stochastictFast>OVERBOUGHT_LEVEL && stochastictSlow>OVERBOUGHT_LEVEL) && slope > 0 && IsAllowedToTrade())
-        {
-         double mystoploss=Ask-(STOP_LOSS*RealPoint);
-         double mytakeprofit=Ask+(TAKE_PROFIT*RealPoint);
-         Print("stochastictFast["+stochastictFast+"] stochastictSlow["+stochastictSlow+"] Slope["+slope+"]");
-         OrderSend(Symbol(),OP_BUY,LOT_SIZE,Ask,0,mystoploss,mytakeprofit,"",MAGICMA,0,Blue);
-        }
-
-      if((stochastictFast<UNDERSOLD_LEVEL && stochastictSlow<UNDERSOLD_LEVEL) && slope < 0 && IsAllowedToTrade())
+      if((stochastictFast>OVERBOUGHT_LEVEL && stochastictSlow>OVERBOUGHT_LEVEL) && slope>0 && IsAllowedToTrade())
         {
          double mystoploss=Bid+(STOP_LOSS*RealPoint);
          double mytakeprofit=Bid-(TAKE_PROFIT*RealPoint);
@@ -74,10 +65,18 @@ void OnTick()
          OrderSend(Symbol(),OP_SELL,LOT_SIZE,Bid,0,mystoploss,mytakeprofit,"",MAGICMA,0,Blue);
         }
 
+      if((stochastictFast<OVERSOLD_LEVEL && stochastictSlow<OVERSOLD_LEVEL) && slope>0 && IsAllowedToTrade())
+        {
+         double mystoploss=Ask-(STOP_LOSS*RealPoint);
+         double mytakeprofit=Ask+(TAKE_PROFIT*RealPoint);
+         Print("stochastictFast["+stochastictFast+"] stochastictSlow["+stochastictSlow+"] Slope["+slope+"]");
+         OrderSend(Symbol(),OP_BUY,LOT_SIZE,Ask,0,mystoploss,mytakeprofit,"",MAGICMA,0,Blue);
+        }
      }
   }
 //+------------------------------------------------------------------+
 //| All the rules to see if we are allowed to trade                  |
+//| So far we check only for the maximum of trade open               |
 //+------------------------------------------------------------------+
 bool IsAllowedToTrade()
   {
@@ -91,20 +90,18 @@ bool IsAllowedToTrade()
      }
   }
 //+------------------------------------------------------------------+
-// Check if we are on a new bar
+// Check if we are on a new bar                                      |
 //+------------------------------------------------------------------+
 bool IsNewBar()
   {
-   if(LastActiontime!=Time[0])
+   datetime currentCandleOpenTime=Time[0];
+   if(LastCandleOpenTime!=currentCandleOpenTime)
      {
-      Print(TimeGMT());
-      LastActiontime=Time[0];
-
+      LastCandleOpenTime=Time[0];
       return true;
      }
    else
      {
-
       return false;
      }
   }
