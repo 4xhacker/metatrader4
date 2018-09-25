@@ -11,8 +11,6 @@
 #define MAGICMA  1
 
 //--- input parameters
-input int      TAKE_PROFIT=40;
-input int      STOP_LOSS=40;
 input int      STOCHASTIC_SLOW=21;
 input int      STOCHASTIC_FAST=5;
 input int      MAX_OPEN_TRADE=1;
@@ -21,7 +19,9 @@ input int      BOLINGER_PERIOD=20;
 input int      BOLINGER_DEVIATION=2;
 input double   OVERBOUGHT_LEVEL=80;
 input double   OVERSOLD_LEVEL=20;
-input double   LOT_SIZE=0.01;
+input double   LOT_SIZE=0.1;
+input double   LOT_MULTIPLICATOR=1.5;
+input double   PROFIT_LOSS_RATIO=0.5;
 
 // Global variables
 double RealPoint;
@@ -48,48 +48,51 @@ void OnDeinit(const int reason)
 //+------------------------------------------------------------------+
 void OnTick()
   {
-
+   
    if(IsNewBar())
      {
-      double stochastictSlow = iStochastic(Symbol(),0,STOCHASTIC_SLOW,3,1,MODE_SMA,0,MODE_MAIN,1);
-      double stochastictFast =iStochastic(Symbol(),0,STOCHASTIC_FAST,3,1,MODE_SMA,0,MODE_MAIN,1);
-      double iMA1 = iMA(Symbol(),0,STOCHASTIC_FAST,0,MODE_SMMA,PRICE_MEDIAN,1);
-      double iMA2 = iMA(Symbol(),0,STOCHASTIC_FAST,0,MODE_SMMA,PRICE_MEDIAN,2);
+      Print("===== NEW BAR ======");
       double bolMiddleLine = iBands(Symbol(),0,BOLINGER_PERIOD,2,0,0,MODE_MAIN,1);
       double bolBottomLine = iBands(Symbol(),0,BOLINGER_PERIOD,2,0,0,MODE_LOWER,1);
       double bolUpperLine=iBands(Symbol(),0,BOLINGER_PERIOD,2,0,0,MODE_UPPER,1);
-      double slope=iMA1-iMA2;
 
-      //      Print("bolinger value ===>" + bolMiddleLine + " bottom "  + bolBottomLine + " upper "  + bolUpperLine);
-      int bolLenghInPip=(bolUpperLine-bolBottomLine)*10000;
+      //Print("Bolinger middle line["+bolMiddleLine+"] bottom line["+bolBottomLine+"] upper line["+bolUpperLine +"]");
+      int bolLenghInPip=(bolUpperLine-bolBottomLine)/RealPoint;
       int stopLossSize = bolLenghInPip/4;
 
-      //      Print("Bol length in pips = " + bolLenghInPip + " stop size : " + stopLossSize);
-      if((stochastictFast>OVERBOUGHT_LEVEL && stochastictSlow>OVERBOUGHT_LEVEL) && slope>0 && IsAllowedToTrade())
-        {
-         double mystoploss=Bid+(stopLossSize*RealPoint);
-         double mytakeprofit=Bid-(bolLenghInPip*RealPoint);
-         double mystoploss2=Bid+(2*stopLossSize*RealPoint);
-         double mystoploss3=Bid+(3*stopLossSize*RealPoint);
-         double mystoploss4=Bid+(4*stopLossSize*RealPoint);
-         Print("mystoploss["+mystoploss+"] mystoploss2["+mystoploss2+"] mytakeprofit["+mytakeprofit+"]");
-         OrderSend(Symbol(),OP_SELL,LOT_SIZE,Bid,100,mystoploss,mytakeprofit,"",MAGICMA,0,Blue);
-         OrderSend(Symbol(),OP_SELLLIMIT,LOT_SIZE*2,mystoploss,100,mystoploss2,mytakeprofit,"",MAGICMA,0,Blue);
-         OrderSend(Symbol(),OP_SELLLIMIT,LOT_SIZE*3,mystoploss2,100,mystoploss3,mytakeprofit,"",MAGICMA,0,Blue);
-         OrderSend(Symbol(),OP_SELLLIMIT,LOT_SIZE*4,mystoploss3,100,mystoploss4,mytakeprofit,"",MAGICMA,0,Blue);
-        }
+      Print("Bolinger length in pips["+bolLenghInPip+"] stop loss distance in pips ["+stopLossSize+"]");
 
-      if((stochastictFast<OVERSOLD_LEVEL && stochastictSlow<OVERSOLD_LEVEL) && slope>0 && IsAllowedToTrade())
+      //--- conditions to go long
+      if(IsOverSold() && IsBullTrend() && IsAllowedToTrade())
         {
+         Print("GOING LONG");
          double mystoploss=Ask-(bolLenghInPip*RealPoint);
-         double mytakeprofit=Ask+(bolLenghInPip*RealPoint);
+         double mytakeprofit=Ask+(bolLenghInPip*RealPoint*PROFIT_LOSS_RATIO);
          double mystoploss2=Ask-(2*stopLossSize*RealPoint);
          double mystoploss3=Ask-(3*stopLossSize*RealPoint);
          double mystoploss4=Ask-(4*stopLossSize*RealPoint);
-         OrderSend(Symbol(),OP_BUY,LOT_SIZE,Ask,0,mystoploss,mytakeprofit,"",MAGICMA,0,Blue);
-         OrderSend(Symbol(),OP_BUYLIMIT,LOT_SIZE*2,mystoploss,100,mystoploss2,mytakeprofit,"",MAGICMA,0,Blue);
-         OrderSend(Symbol(),OP_BUYLIMIT,LOT_SIZE*3,mystoploss2,100,mystoploss3,mytakeprofit,"",MAGICMA,0,Blue);
-         OrderSend(Symbol(),OP_BUYLIMIT,LOT_SIZE*4,mystoploss3,100,mystoploss4,mytakeprofit,"",MAGICMA,0,Blue);
+         int orderTicket = OrderSend(Symbol(),OP_BUY,LOT_SIZE,Ask,0,mystoploss,mytakeprofit,"",MAGICMA,0,Blue);
+         Print("OrderTicket["+orderTicket+"]");
+         OrderSend(Symbol(),OP_BUYLIMIT,LOT_SIZE*LOT_MULTIPLICATOR,mystoploss,100,mystoploss2,mytakeprofit,"",MAGICMA,0,Blue);
+         OrderSend(Symbol(),OP_BUYLIMIT,LOT_SIZE*2*LOT_MULTIPLICATOR,mystoploss2,100,mystoploss3,mytakeprofit,"",MAGICMA,0,Blue);
+         OrderSend(Symbol(),OP_BUYLIMIT,LOT_SIZE*3*LOT_MULTIPLICATOR,mystoploss3,100,mystoploss4,mytakeprofit,"",MAGICMA,0,Blue);
+        }
+
+      //--- conditions to go short
+      if(IsOverBought() && IsBearTrend() && IsAllowedToTrade())
+        {
+         Print("GOING SHORT");
+         double mystoploss=Bid+(stopLossSize*RealPoint);
+         double mytakeprofit=Bid-(bolLenghInPip*RealPoint*PROFIT_LOSS_RATIO);
+         double mystoploss2=Bid+(2*stopLossSize*RealPoint);
+         double mystoploss3=Bid+(3*stopLossSize*RealPoint);
+         double mystoploss4=Bid+(4*stopLossSize*RealPoint);
+         int orderTicket = 
+OrderSend(Symbol(),OP_SELL,LOT_SIZE,Bid,100,mystoploss,mytakeprofit,"",MAGICMA,0,Blue);
+         Print("OrderTicket["+orderTicket+"]");
+         OrderSend(Symbol(),OP_SELLLIMIT,LOT_SIZE*LOT_MULTIPLICATOR,mystoploss,100,mystoploss2,mytakeprofit,"",MAGICMA,0,Blue);
+         OrderSend(Symbol(),OP_SELLLIMIT,LOT_SIZE*2*LOT_MULTIPLICATOR,mystoploss2,100,mystoploss3,mytakeprofit,"",MAGICMA,0,Blue);
+         OrderSend(Symbol(),OP_SELLLIMIT,LOT_SIZE*3*LOT_MULTIPLICATOR,mystoploss3,100,mystoploss4,mytakeprofit,"",MAGICMA,0,Blue);
         }
      }
   }
@@ -101,6 +104,7 @@ bool IsAllowedToTrade()
   {
    if(OrdersTotal()<MAX_OPEN_TRADE)
      {
+      Print("IsAllowedToTrade[true]");
       return true;
      }
    else
@@ -141,5 +145,81 @@ double RealPipPoint(string Currency)
      }
    return(CalcPoint);
   }
+//+------------------------------------------------------------------+
+//|                                                                  |
+//+------------------------------------------------------------------+
+bool IsOverBought()
+  {
+   double stochastictSlow = iStochastic(Symbol(),0,STOCHASTIC_SLOW,3,1,MODE_SMA,0,MODE_MAIN,1);
+   double stochastictFast = iStochastic(Symbol(),0,STOCHASTIC_FAST,3,1,MODE_SMA,0,MODE_MAIN,1);
 
+   if(stochastictFast>OVERBOUGHT_LEVEL && stochastictSlow>OVERBOUGHT_LEVEL)
+     {
+      Print("stochastiSlow["+stochastictSlow+"] stochasticFast["+stochastictFast+"]");
+      Print("IsOverBought[true]");
+      return true;
+     }
+   else
+     {
+      return false;
+     }
+  }
+//+------------------------------------------------------------------+
+//|                                                                  |
+//+------------------------------------------------------------------+
+bool IsOverSold()
+  {
+   double stochastictSlow = iStochastic(Symbol(),0,STOCHASTIC_SLOW,3,1,MODE_SMA,0,MODE_MAIN,1);
+   double stochastictFast =iStochastic(Symbol(),0,STOCHASTIC_FAST,3,1,MODE_SMA,0,MODE_MAIN,1);
+
+   if(stochastictFast<OVERSOLD_LEVEL && stochastictSlow<OVERSOLD_LEVEL)
+     {
+      Print("stochastic values stochastiSlow["+stochastictSlow+"] stochasticFast["+stochastictFast+"]");
+      Print("IsOverSold[true]");
+      return true;
+     }
+   else
+     {
+      return false;
+     }
+  }
+//+------------------------------------------------------------------+
+//|                                                                  |
+//+------------------------------------------------------------------+
+bool IsBullTrend()
+  {
+   double iMA1=iMA(Symbol(),0,STOCHASTIC_FAST,0,MODE_SMMA,PRICE_MEDIAN,1);
+   double iMA2=iMA(Symbol(),0,STOCHASTIC_FAST,0,MODE_SMMA,PRICE_MEDIAN,20);
+   double slope=iMA1-iMA2;
+   if(slope>0)
+     {
+      Print("Slope["+slope+"]");
+      Print("Trend[Bull]");
+      return true;
+     }
+   else
+     {
+      return false;
+     }
+  }
+//+------------------------------------------------------------------+
+//|                                                                  |
+//+------------------------------------------------------------------+
+bool IsBearTrend()
+  {
+   double iMA1=iMA(Symbol(),0,STOCHASTIC_FAST,0,MODE_SMMA,PRICE_MEDIAN,1);
+   double iMA2=iMA(Symbol(),0,STOCHASTIC_FAST,0,MODE_SMMA,PRICE_MEDIAN,20);
+   double slope=iMA1-iMA2;
+
+   if(slope<0)
+     {
+      Print("Slope["+slope+"]");
+      Print("Trend[Bear]");
+      return true;
+     }
+   else
+     {
+      return false;
+     }
+  }
 //+------------------------------------------------------------------+
