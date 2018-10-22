@@ -54,6 +54,7 @@ void OnDeinit(const int reason)
 //+------------------------------------------------------------------+
 void OnTick()
   {
+<<<<<<< HEAD
    if(tradeEventListener())
      {
       Print("Last Account Balance = "+LastAccountBalance+" Account Balance "+AccountBalance());
@@ -100,6 +101,20 @@ void OnTick()
       int bolLenghInPip=(bolUpperLine-bolBottomLine)/RealPoint;
       int stopLossSize = bolLenghInPip/4;
 
+=======
+   
+   if(IsNewBar())
+     {
+      Print("===== NEW BAR ======");
+      double bolMiddleLine = iBands(Symbol(),0,BOLINGER_PERIOD,2,0,0,MODE_MAIN,1);
+      double bolBottomLine = iBands(Symbol(),0,BOLINGER_PERIOD,2,0,0,MODE_LOWER,1);
+      double bolUpperLine=iBands(Symbol(),0,BOLINGER_PERIOD,2,0,0,MODE_UPPER,1);
+
+      //Print("Bolinger middle line["+bolMiddleLine+"] bottom line["+bolBottomLine+"] upper line["+bolUpperLine +"]");
+      int bolLenghInPip=(bolUpperLine-bolBottomLine)/RealPoint;
+      int stopLossSize = bolLenghInPip/4;
+
+>>>>>>> 0b663034b11c37a04ed90b918bcc72f422fbbb20
       Print("Bolinger length in pips["+bolLenghInPip+"] stop loss distance in pips ["+stopLossSize+"]");
 
       //--- conditions to go long
@@ -111,7 +126,11 @@ void OnTick()
          double mystoploss2=Ask-(2*stopLossSize*RealPoint);
          double mystoploss3=Ask-(3*stopLossSize*RealPoint);
          double mystoploss4=Ask-(4*stopLossSize*RealPoint);
+<<<<<<< HEAD
          int orderTicket=OrderSend(Symbol(),OP_BUY,LOT_SIZE,Ask,0,mystoploss,mytakeprofit,"",MAGICMA,0,Blue);
+=======
+         int orderTicket = OrderSend(Symbol(),OP_BUY,LOT_SIZE,Ask,0,mystoploss,mytakeprofit,"",MAGICMA,0,Blue);
+>>>>>>> 0b663034b11c37a04ed90b918bcc72f422fbbb20
          Print("OrderTicket["+orderTicket+"]");
          OrderSend(Symbol(),OP_BUYLIMIT,LOT_SIZE*LOT_MULTIPLICATOR,mystoploss,100,mystoploss2,mytakeprofit,"",MAGICMA,0,Blue);
          OrderSend(Symbol(),OP_BUYLIMIT,LOT_SIZE*2*LOT_MULTIPLICATOR,mystoploss2,100,mystoploss3,mytakeprofit,"",MAGICMA,0,Blue);
@@ -127,8 +146,13 @@ void OnTick()
          double mystoploss2=Bid+(2*stopLossSize*RealPoint);
          double mystoploss3=Bid+(3*stopLossSize*RealPoint);
          double mystoploss4=Bid+(4*stopLossSize*RealPoint);
+<<<<<<< HEAD
          int orderTicket=
                          OrderSend(Symbol(),OP_SELL,LOT_SIZE,Bid,100,mystoploss,mytakeprofit,"",MAGICMA,0,Blue);
+=======
+         int orderTicket = 
+OrderSend(Symbol(),OP_SELL,LOT_SIZE,Bid,100,mystoploss,mytakeprofit,"",MAGICMA,0,Blue);
+>>>>>>> 0b663034b11c37a04ed90b918bcc72f422fbbb20
          Print("OrderTicket["+orderTicket+"]");
          OrderSend(Symbol(),OP_SELLLIMIT,LOT_SIZE*LOT_MULTIPLICATOR,mystoploss,100,mystoploss2,mytakeprofit,"",MAGICMA,0,Blue);
          OrderSend(Symbol(),OP_SELLLIMIT,LOT_SIZE*2*LOT_MULTIPLICATOR,mystoploss2,100,mystoploss3,mytakeprofit,"",MAGICMA,0,Blue);
@@ -237,9 +261,6 @@ bool IsOverBought()
       Print("IsOverBought[true]");
       return true;
      }
-//+------------------------------------------------------------------+
-//|                                                                  |
-//+------------------------------------------------------------------+
    else
      {
       return false;
@@ -252,18 +273,13 @@ bool IsOverSold()
   {
    double stochastictSlow = iStochastic(Symbol(),0,STOCHASTIC_SLOW,3,1,MODE_SMA,0,MODE_MAIN,1);
    double stochastictFast =iStochastic(Symbol(),0,STOCHASTIC_FAST,3,1,MODE_SMA,0,MODE_MAIN,1);
-//+------------------------------------------------------------------+
-//|                                                                  |
-//+------------------------------------------------------------------+
+
    if(stochastictFast<OVERSOLD_LEVEL && stochastictSlow<OVERSOLD_LEVEL)
      {
       Print("stochastic values stochastiSlow["+stochastictSlow+"] stochasticFast["+stochastictFast+"]");
       Print("IsOverSold[true]");
       return true;
      }
-//+------------------------------------------------------------------+
-//|                                                                  |
-//+------------------------------------------------------------------+
    else
      {
       return false;
@@ -277,43 +293,28 @@ bool IsBullTrend()
    double iMA1=iMA(Symbol(),0,STOCHASTIC_FAST,0,MODE_SMMA,PRICE_MEDIAN,1);
    double iMA2=iMA(Symbol(),0,STOCHASTIC_FAST,0,MODE_SMMA,PRICE_MEDIAN,20);
    double slope=iMA1-iMA2;
-//+------------------------------------------------------------------+
-//|                                                                  |
-//+------------------------------------------------------------------+
    if(slope>0)
      {
       Print("Slope["+slope+"]");
       Print("Trend[Bull]");
       return true;
      }
-//+------------------------------------------------------------------+
-//|                                                                  |
-//+------------------------------------------------------------------+
    else
      {
       return false;
      }
   }
-//+------------------------------------------------------------------+
-//|                                                                  |
-//+------------------------------------------------------------------+
 bool IsBearTrend()
   {
    double iMA1=iMA(Symbol(),0,STOCHASTIC_FAST,0,MODE_SMMA,PRICE_MEDIAN,1);
    double iMA2=iMA(Symbol(),0,STOCHASTIC_FAST,0,MODE_SMMA,PRICE_MEDIAN,20);
    double slope=iMA1-iMA2;
-//+------------------------------------------------------------------+
-//|                                                                  |
-//+------------------------------------------------------------------+
    if(slope<0)
      {
       Print("Slope["+slope+"]");
       Print("Trend[Bear]");
       return true;
      }
-//+------------------------------------------------------------------+
-//|                                                                  |
-//+------------------------------------------------------------------+
    else
      {
       return false;
